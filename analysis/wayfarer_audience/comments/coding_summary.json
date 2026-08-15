@@ -1,0 +1,182 @@
+﻿[
+    {
+        "task":  "activation",
+        "substantive_comments":  113,
+        "videos":  [
+                       "aQAJ6SMqwgY",
+                       "dYhjssKgzA4",
+                       "G3emPJVm_20",
+                       "j6CQaIs-eGE",
+                       "nvb0DvB8Rzo",
+                       "VUj6zDFs-2Q"
+                   ],
+        "by_video":  [
+                         {
+                             "video_id":  "G3emPJVm_20",
+                             "count":  67
+                         },
+                         {
+                             "video_id":  "dYhjssKgzA4",
+                             "count":  32
+                         },
+                         {
+                             "video_id":  "VUj6zDFs-2Q",
+                             "count":  7
+                         },
+                         {
+                             "video_id":  "j6CQaIs-eGE",
+                             "count":  3
+                         },
+                         {
+                             "video_id":  "aQAJ6SMqwgY",
+                             "count":  2
+                         },
+                         {
+                             "video_id":  "nvb0DvB8Rzo",
+                             "count":  2
+                         }
+                     ]
+    },
+    {
+        "task":  "learning_system",
+        "substantive_comments":  41,
+        "videos":  [
+                       "aQAJ6SMqwgY",
+                       "dYhjssKgzA4",
+                       "G3emPJVm_20",
+                       "j6CQaIs-eGE",
+                       "nvb0DvB8Rzo",
+                       "VUj6zDFs-2Q"
+                   ],
+        "by_video":  [
+                         {
+                             "video_id":  "G3emPJVm_20",
+                             "count":  11
+                         },
+                         {
+                             "video_id":  "nvb0DvB8Rzo",
+                             "count":  8
+                         },
+                         {
+                             "video_id":  "j6CQaIs-eGE",
+                             "count":  6
+                         },
+                         {
+                             "video_id":  "VUj6zDFs-2Q",
+                             "count":  6
+                         },
+                         {
+                             "video_id":  "aQAJ6SMqwgY",
+                             "count":  5
+                         },
+                         {
+                             "video_id":  "dYhjssKgzA4",
+                             "count":  5
+                         }
+                     ]
+    },
+    {
+        "task":  "memory_use",
+        "substantive_comments":  23,
+        "videos":  [
+                       "aQAJ6SMqwgY",
+                       "dYhjssKgzA4",
+                       "G3emPJVm_20",
+                       "j6CQaIs-eGE",
+                       "nvb0DvB8Rzo",
+                       "VUj6zDFs-2Q"
+                   ],
+        "by_video":  [
+                         {
+                             "video_id":  "dYhjssKgzA4",
+                             "count":  7
+                         },
+                         {
+                             "video_id":  "j6CQaIs-eGE",
+                             "count":  6
+                         },
+                         {
+                             "video_id":  "aQAJ6SMqwgY",
+                             "count":  4
+                         },
+                         {
+                             "video_id":  "VUj6zDFs-2Q",
+                             "count":  3
+                         },
+                         {
+                             "video_id":  "nvb0DvB8Rzo",
+                             "count":  2
+                         },
+                         {
+                             "video_id":  "G3emPJVm_20",
+                             "count":  1
+                         }
+                     ]
+    },
+    {
+        "task":  "emotional_control",
+        "substantive_comments":  75,
+        "videos":  [
+                       "aQAJ6SMqwgY",
+                       "dYhjssKgzA4",
+                       "G3emPJVm_20",
+                       "VUj6zDFs-2Q"
+                   ],
+        "by_video":  [
+                         {
+                             "video_id":  "dYhjssKgzA4",
+                             "count":  70
+                         },
+                         {
+                             "video_id":  "G3emPJVm_20",
+                             "count":  2
+                         },
+                         {
+                             "video_id":  "aQAJ6SMqwgY",
+                             "count":  2
+                         },
+                         {
+                             "video_id":  "VUj6zDFs-2Q",
+                             "count":  1
+                         }
+                     ]
+    },
+    {
+        "task":  "translation_action",
+        "substantive_comments":  43,
+        "videos":  [
+                       "aQAJ6SMqwgY",
+                       "dYhjssKgzA4",
+                       "G3emPJVm_20",
+                       "j6CQaIs-eGE",
+                       "nvb0DvB8Rzo",
+                       "VUj6zDFs-2Q"
+                   ],
+        "by_video":  [
+                         {
+                             "video_id":  "G3emPJVm_20",
+                             "count":  18
+                         },
+                         {
+                             "video_id":  "aQAJ6SMqwgY",
+                             "count":  9
+                         },
+                         {
+                             "video_id":  "dYhjssKgzA4",
+                             "count":  7
+                         },
+                         {
+                             "video_id":  "nvb0DvB8Rzo",
+                             "count":  4
+                         },
+                         {
+                             "video_id":  "VUj6zDFs-2Q",
+                             "count":  3
+                         },
+                         {
+                             "video_id":  "j6CQaIs-eGE",
+                             "count":  2
+                         }
+                     ]
+    }
+]

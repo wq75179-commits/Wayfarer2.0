@@ -1,0 +1,4 @@
+interface:
+  display_name: "整理频道决策"
+  short_description: "依据本期明确决定和持久记录，更新频道长期决策并完成最终审计"
+  default_prompt: "使用 $channel-decision-sync 整理本期频道决定并完成记忆检查。"

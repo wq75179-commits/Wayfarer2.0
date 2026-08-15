@@ -1,0 +1,4 @@
+interface:
+  display_name: "整理创作经验"
+  short_description: "依据本期已确认变更和最终文件，整理大纲技巧与文稿表达记忆"
+  default_prompt: "使用 $creative-memory-sync 整理本期大纲与文稿经验。"
