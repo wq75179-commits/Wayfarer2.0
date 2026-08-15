@@ -1,6 +1,9 @@
 # Obsidian
-.obsidian/
-YOLO/
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+.obsidian/core-plugins-galore.json
+.obsidian/graph.json
+
 # OS generated files
 .DS_Store
 .DS_Store?
