@@ -1,6 +1,6 @@
 # Wayfarer 2.0 Git 协作规范
 
-> 目录：0 文档定位 · 1 绝对规则 · 2 仓库对象的解释 · 3 第一轮检查（3.1 本地安全设置） · 4 标准任务流程（4.1–4.6） · 5 不使用 PR 的本地合并流程 · 6 多人同时工作的规则 · 7 冲突处理 · 8 常见故障 · 9 完成报告模板 · 10 最小命令清单（速查）
+> 目录：0 文档定位 · 1 绝对规则 · 2 仓库对象的解释 · 3 第一轮检查（3.1 本地安全设置） · 4 标准任务流程（4.1–4.7） · 5 不使用 PR 的本地合并流程 · 6 多人同时工作的规则 · 7 冲突处理 · 8 常见故障 · 9 完成报告模板 · 10 最小命令清单（速查）
 
 ## 0. 文档定位
 
@@ -16,7 +16,7 @@
 - AI 在本地把任务分支合并到 `main`，再直接推送 `main`。
 - AI 负责所有 Git 命令、状态判断、冲突处理和结果说明。
 
-命令示例遵循仓库的 RTK 约定，统一写成 `rtk git ...`。如果执行环境没有 `rtk`，AI 可以去掉最前面的 `rtk`，但不能改变 Git 命令本身。
+命令示例统一写成 `git ...`，这是唯一标准写法。如果协作者或 AI 的执行环境配置了 `rtk` 封装（`rtk git ...` 等价于 `git ...`），可以加 `rtk` 前缀，但**不强制要求**——其他主机未安装 `rtk` 时，直接执行 `git` 命令即可，命令本身不得改变。
 
 ## 1. 绝对规则
 
@@ -46,7 +46,7 @@ AI 不得把这些名称混为一谈：
 判断当前分支必须使用：
 
 ```powershell
-rtk git branch --show-current
+git branch --show-current
 ```
 
 不得根据 `HEAD` 这个词猜测当前分支。
@@ -56,9 +56,9 @@ rtk git branch --show-current
 每次 AI 开始工作，先执行以下命令：
 
 ```powershell
-rtk git rev-parse --show-toplevel
-rtk git status --short --branch
-rtk git branch -vv
+git rev-parse --show-toplevel
+git status --short --branch
+git branch -vv
 ```
 
 检查结果：
@@ -76,21 +76,23 @@ AI 必须先把工作区现状告诉用户，再开始编辑。不能把“工�
 在仓库根目录检查并设置一次：
 
 ```powershell
-rtk git config --get pull.ff
-rtk git config pull.ff only
-rtk git config fetch.prune true
-rtk git config core.autocrlf true
+git config --get pull.ff
+git config pull.ff only
+git config fetch.prune true
+git config core.autocrlf true
 ```
 
 这不会修改仓库文件，也不会产生 Git 提交。设置完成后，日常仍可直接执行：
 
 ```powershell
-rtk git pull origin main
+git pull origin main
 ```
 
 `pull.ff only` 的作用是：如果本地和远端可以直接前进，正常完成 `pull`；如果双方已经分叉，则停止并报告，不在后台自动制造新的合并提交。
 
 `core.autocrlf true` 统一 Windows 上的换行符处理，避免 CRLF/LF 差异造成整文件噪音 diff；如未来需要更强约束，可在仓库根目录提交 `.gitattributes` 锁定文本文件行尾。
+
+本机环境相关的网络配置（如 `http.proxy`、`http.sslBackend`）一律使用 `--global` 或环境变量设置，**不得写入仓库级 `.git/config`**：仓库级配置会随克隆带到其他协作者的机器，而对方的网络环境可能不同（例如代理端口不同），会导致对方的 `pull`/`push` 直接失败。仓库级 `.git/config` 只放协作性配置。
 
 ## 4. 标准任务流程
 
@@ -99,8 +101,8 @@ rtk git pull origin main
 工作区干净时，执行：
 
 ```powershell
-rtk git switch main
-rtk git pull origin main
+git switch main
+git pull origin main
 ```
 
 这里使用直接 `pull`，因为本项目不要求用户理解 `fetch`、`merge` 或 `rebase` 的区别。
@@ -108,8 +110,8 @@ rtk git pull origin main
 执行后立即检查：
 
 ```powershell
-rtk git status --short --branch
-rtk git log --oneline --decorate -5
+git status --short --branch
+git log --oneline --decorate -5
 ```
 
 如果 `pull` 产生合并提交、提示冲突或报错，AI 必须先解释结果，不得假装同步成功。
@@ -119,7 +121,7 @@ rtk git log --oneline --decorate -5
 从已同步的 `main` 创建任务分支：
 
 ```powershell
-rtk git switch -c task/WF-20260814-01-script
+git switch -c task/WF-20260814-01-script
 ```
 
 命名格式：
@@ -157,10 +159,10 @@ AI 只修改用户请求涉及的文件和必要的索引文件。
 编辑完成后执行：
 
 ```powershell
-rtk git status --short
-rtk git diff --check
-rtk git diff --stat
-rtk git diff -- "明确的文件路径"
+git status --short
+git diff --check
+git diff --stat
+git diff -- "明确的文件路径"
 ```
 
 AI 按第 9 节的报告模板向用户报告：修改了哪些文件、每个文件改变了什么、做了哪些检查、是否发现未解决的问题。
@@ -172,11 +174,14 @@ AI 按第 9 节的报告模板向用户报告：修改了哪些文件、每个�
 只加入明确路径，不使用无选择的 `git add .`：
 
 ```powershell
-rtk git add -- "文件或目录路径"
-rtk git diff --cached --name-status
-rtk git diff --cached --check
-rtk git commit -m "新增：WF-20260814-01 - 补充口播文稿"
+git add -- "文件或目录路径"
+git diff --cached --name-status
+git diff --cached --check
+git diff --cached -- "明确的文件路径"
+git commit -m "新增：WF-20260814-01 - 补充口播文稿"
 ```
+
+提交前必须查看 `git diff --cached` 的完整内容，确认 staged 变更与本次任务一致、没有夹带无关改动；只核对统计不检查实际 diff 不算完成检查。提交信息必须让协作者只看信息就能明白改了什么（对象 + 具体变更），禁止使用无法说明内容的提交信息。
 
 提交信息格式：
 
@@ -203,22 +208,35 @@ rtk git commit -m "新增：WF-20260814-01 - 补充口播文稿"
 提交成功后，可以把任务分支推送到远端保存：
 
 ```powershell
-rtk git push -u origin task/WF-20260814-01-script
+git push -u origin task/WF-20260814-01-script
 ```
 
 这一步只是备份和保留历史，不是创建 PR，也不需要用户审查。
+
+### 4.7 认证与凭证
+
+- 默认使用系统凭证管理器（Windows 上为 Git Credential Manager，`credential.helper=manager`），首次推送时完成一次登录，后续自动使用。
+- 凭证管理器无法运行或认证失败时（例如受限执行环境禁止弹窗）：先向用户说明，优先请用户手动执行一次 `git push` 完成认证。
+- 备用方案：用户提供 Personal Access Token（PAT，`repo` 权限）后用于认证；令牌只用于本次命令，不写入文件。
+- 禁止把 token 写进 URL（`https://user:token@...`）或任何提交记录。
+- 认证相关错误（`could not read Username`、`Authentication failed`）按第 8 节的诊断框架定位，不要把 TLS/代理问题误判为凭证问题。
 
 ## 5. 不使用 PR 时的本地合并流程
 
 任务分支提交成功后（分支是否已推送均可），由 AI 在本地完成合并：
 
 ```powershell
-rtk git switch main
-rtk git pull origin main
-rtk git merge --no-ff --no-edit task/WF-20260814-01-script
-rtk git diff --check
-rtk git push origin main
+git switch main
+git pull origin main
+git log --oneline main..task/WF-20260814-01-script
+git diff --stat main...task/WF-20260814-01-script
+git merge --no-ff --no-edit task/WF-20260814-01-script
+git diff --check
+git show --stat <合并提交 ID>
+git push origin main
 ```
+
+合并前先查看任务分支相对 `main` 的提交清单（`git log`）和文件变更概览（`git diff --stat`），确认将要合并的内容；发现夹带无关提交或文件时，先停下来向用户说明，不得直接合并。合并成功后执行 `git show --stat` 核对合并进入 `main` 的最终文件清单，再向用户报告。
 
 解释：
 
@@ -256,7 +274,7 @@ rtk git push origin main
 立即执行：
 
 ```powershell
-rtk git status
+git status
 ```
 
 然后向用户说明：
@@ -271,9 +289,9 @@ rtk git status
 仅当一方是明显的格式、链接或机械性修改，且不会改变影片事实时，AI 才可以自行合并。这与第 4.3 节“不因 Git 冲突而自行选择一方覆盖另一方”一致：机械性判断仅限格式、链接等不改变内容事实的修改；涉及事实、数据或文稿内容的冲突一律归入 7.3。处理后执行：
 
 ```powershell
-rtk git add -- "已解决的文件路径"
-rtk git diff --cached --check
-rtk git commit --no-edit
+git add -- "已解决的文件路径"
+git diff --cached --check
+git commit --no-edit
 ```
 
 ### 7.3 无法判断的冲突
@@ -281,31 +299,41 @@ rtk git commit --no-edit
 涉及标题、脚本内容、发布数据、确认状态、Changelog 或长期记忆时，AI 不得自行选择。可以取消尚未完成的合并：
 
 ```powershell
-rtk git merge --abort
+git merge --abort
 ```
 
 取消后保留现场信息，等待用户决定。
 
 ## 8. 常见故障
 
+遇到任何 Git 失败，先按三层分类定位，再决定处理方式：
+
+| 层次 | 典型错误 | 最小诊断命令 |
+| --- | --- | --- |
+| 网络层 | `Could not resolve host`、`Failed to connect`、连接超时 | `curl.exe -s -o NUL -w "%{http_code}" --connect-timeout 8 https://github.com`（返回 `000` = 网络不通） |
+| TLS 层 | `schannel: ... SEC_E_...`、`SSL certificate problem` | `git -c http.sslBackend=openssl ls-remote origin`（成功 = schannel 后端与本机网络环境不兼容，改用 `openssl`） |
+| 认证层 | `could not read Username`、`Authentication failed` | `git credential fill`（输入 `protocol=https`、`host=github.com` 后观察是否返回凭证） |
+
+分类原则：先诊断定位，再决定是否调整本机配置。确属本机环境问题（代理、TLS 后端、凭证）时，向用户说明诊断结论与调整方案，经确认后调整，不擅自更换代理设置。
+
 ### 8.1 pull 失败
 
 AI 记录完整错误信息，检查：
 
 ```powershell
-rtk git status --short --branch
-rtk git branch -vv
-rtk git log --graph --decorate --oneline --all -n 20
+git status --short --branch
+git branch -vv
+git log --graph --decorate --oneline --all -n 20
 ```
 
-不要改用破坏性命令。网络失败时不要擅自猜测或更换代理设置；报告错误并等待环境恢复或用户提供新的网络方案。
+不要改用破坏性命令。网络失败时先按本节开头的三层分类诊断定位；确属本机环境问题（代理、TLS 后端）时，向用户说明诊断结论与调整方案，经确认后调整，不擅自更换代理设置。
 
 ### 8.2 push 被拒绝
 
 说明远端 `main` 在本地任务期间已经前进。执行：
 
 ```powershell
-rtk git pull origin main
+git pull origin main
 ```
 
 如果当前正在合并或有冲突，先不要继续；向用户报告状态。严禁 `git push --force`。
@@ -328,7 +356,7 @@ stash（除非用户明确批准）
 如果尚未提交，AI 可以在确认工作区内容后创建任务分支，把修改带到任务分支：
 
 ```powershell
-rtk git switch -c task/recover-current-work
+git switch -c task/recover-current-work
 ```
 
 如果已经提交，不重写历史；记录提交 ID，先向用户说明，再决定是否继续合并。
@@ -357,28 +385,28 @@ Git 状态：已完成 / 未完成
 开始任务：
 
 ```powershell
-rtk git status --short --branch
-rtk git switch main
-rtk git pull origin main
-rtk git switch -c task/<任务名>
+git status --short --branch
+git switch main
+git pull origin main
+git switch -c task/<任务名>
 ```
 
 用户确认后提交：
 
 ```powershell
-rtk git add -- "明确路径"
-rtk git diff --cached --check
-rtk git commit -m "<类型>：<对象> - <具体变更>"
-rtk git push -u origin task/<任务名>
+git add -- "明确路径"
+git diff --cached --check
+git commit -m "<类型>：<对象> - <具体变更>"
+git push -u origin task/<任务名>
 ```
 
 本地合并并推送：
 
 ```powershell
-rtk git switch main
-rtk git pull origin main
-rtk git merge --no-ff --no-edit task/<任务名>
-rtk git push origin main
+git switch main
+git pull origin main
+git merge --no-ff --no-edit task/<任务名>
+git push origin main
 ```
 
 以上流程不包含 Pull Request，也不要求用户执行任何 Git 命令。
