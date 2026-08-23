@@ -55,6 +55,9 @@ flowchart LR
 | [memories/](./memories/) | 跨期已确认经验、影片索引与频道级决策 | 规划新一期前提取可复用约束时 |
 | [.agents/skills/](./.agents/skills/) | 归档、记忆同步与文字质量相关的项目级 Skill | 执行已定义的专项流程时 |
 | [.obsidian/](./.obsidian/) | Obsidian 本地工作区配置 | 在 Obsidian 中浏览本库时 |
+| [GIT协作规范.md](./GIT协作规范.md) | 给 AI 使用的两人协作分支、同步、提交、合并和冲突处理协议 | AI 执行 Git 操作前 |
+
+两人协作统一遵循 [GIT协作规范](./GIT协作规范.md)：AI 直接同步远端、创建任务分支、本地合并并推送 `main`，不使用 Pull Request。
 
 ## 单期创作流程
 
