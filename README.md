@@ -20,7 +20,7 @@
 
 ```mermaid
 flowchart LR
-    A["频道规范与战略<br/>AGENTS.md / 重大决策"] --> B["单期事实源<br/>project/每期 README"]
+    A["频道规范与战略<br/>AGENTS.md"] --> B["单期事实源<br/>project/每期 README"]
     C["受众研究与原始证据<br/>analysis/"] --> B
     B --> D["本期输入与交付物<br/>input/ / output/"]
     B --> E["跨期可复用结论<br/>memories/"]
@@ -49,11 +49,10 @@ flowchart LR
 | [AGENTS.md](./AGENTS.md) | 频道创作手册、阶段流程、协作规则和单期 README 约束 | 开始新选题或不确定某条规则时 |
 | [project/](./project/) | 单期影片项目；每期 README 是事实源 | 查询某一期状态、资料、文稿与数据 |
 | [project/example/README.md](./project/example/README.md) | 新建单期项目的 README 模板 | 初始化新一期时 |
-| [WritingStyle/WritingStyle.md](./WritingStyle/WritingStyle.md) | 频道声音画像、结构、语言细则与自检清单 | 写大纲、逐字稿或审稿时 |
-| [WritingStyle/raw/](./WritingStyle/raw/) | 历史影片逐字稿与表现资料 | 对齐频道既有表达和案例密度时 |
 | [analysis/wayfarer_audience/](./analysis/wayfarer_audience/) | 观众任务、注意力时间线、增长机制与相邻方向研究 | 做选题判断或复盘受众需求时 |
-| [memories/](./memories/) | 跨期已确认经验、影片索引与频道级决策 | 规划新一期前提取可复用约束时 |
-| [.agents/skills/](./.agents/skills/) | 归档、记忆同步与文字质量相关的项目级 Skill | 执行已定义的专项流程时 |
+| [memories/](./memories/) | 大纲、文稿和包装阶段的候选、正式与暂存经验 | 规划相应创作阶段前提取可复用约束时 |
+| [.agents/skills/memory-query/](./.agents/skills/memory-query/) | 阶段记忆的只读查询入口 | 写大纲、文稿或包装前读取当前阶段记忆时 |
+| [.agents/skills/creative-memory-review/](./.agents/skills/creative-memory-review/) | 单期归档、AI/用户版本比较和阶段记忆整理 | 用户要求归档、总结经验、分析或复盘时 |
 | [.obsidian/](./.obsidian/) | Obsidian 本地工作区配置 | 在 Obsidian 中浏览本库时 |
 | [GIT协作规范.md](./GIT协作规范.md) | 给 AI 使用的两人协作分支、同步、提交、合并和冲突处理协议 | AI 执行 Git 操作前 |
 
@@ -87,22 +86,19 @@ flowchart LR
 | 需要回答的问题 | 应查看的位置 | 不应据此直接下结论的资料 |
 | --- | --- | --- |
 | 某一期现在做到哪里、是否发布、数据如何？ | `project/<episode>/README.md` | 模板、跨期记忆、聊天记录 |
-| 写作时应遵守什么声音与结构？ | `WritingStyle/WritingStyle.md` 与已确认的记忆条目 | 单次草稿或未确认的建议 |
-| 频道长期方向和比例是什么？ | `memories/重大决策记忆.md` | 单期表现或待确认的分析建议 |
+| 写作时应遵守什么声音与结构？ | 当前阶段的 `memory-query` 结果、本期 README 确认和用户要求 | 单次草稿或未确认的建议 |
+| 频道长期方向是什么？ | `AGENTS.md` 中明确写出的频道规范和用户确认 | 单期表现或待确认的分析建议 |
 | 观众研究的证据与限制是什么？ | `analysis/wayfarer_audience/` 的阶段报告及其原始数据 | 单个评论、未经验证的推断 |
 
 `analysis/wayfarer_audience/` 中的相邻方向路线是决策支持材料。其中尚待用户确认的建议不能自动升级为频道长期策略。
 
 ## 归档与记忆边界
 
-归档不是简单把文件放到历史目录，而是把本期已确认事实固化下来。归档后可按顺序使用以下专项流程：
+归档不是简单把文件放到历史目录，而是把本期已确认事实固化下来，并在用户要求时将 AI 与用户的创作差异转化为可复用候选经验。
 
-1. [archive-episode](./.agents/skills/archive-episode/SKILL.md)：归档当前单期，并检查归档事实与 Changelog。
-2. [episode-memory-sync](./.agents/skills/episode-memory-sync/SKILL.md)：同步影片索引与可核验的跨期数据。
-3. [creative-memory-sync](./.agents/skills/creative-memory-sync/SKILL.md)：审计并预览可沉淀的大纲与文稿经验。
-4. [channel-decision-sync](./.agents/skills/channel-decision-sync/SKILL.md)：仅同步用户明确作出的频道级长期决定，并完成最终审计。
+使用 [creative-memory-review](./.agents/skills/creative-memory-review/SKILL.md) 统一完成归档、版本对比和阶段记忆预览。它只写用户明确批准的大纲、文稿或包装记忆；每条记忆只属于一个阶段。后续创作只能通过 [memory-query](./.agents/skills/memory-query/SKILL.md) 读取对应阶段记忆，不能直接通读原始文件。
 
-每一步涉及长期记忆写入时，都必须先展示准备记录的内容和依据，并取得明确批准。
+未来项目应在 README 的“复盘对照文件”表登记角色明确的 AI 版本与用户版本。对照缺失或角色不明确时，该阶段不产生记忆。
 
 ## 维护约定
 

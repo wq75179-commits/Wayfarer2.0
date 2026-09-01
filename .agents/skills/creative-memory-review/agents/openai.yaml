@@ -1,0 +1,6 @@
+interface:
+  display_name: "归档与创作复盘"
+  short_description: "对比 AI 与用户版本，归档单期并整理三阶段记忆"
+  default_prompt: "使用 $creative-memory-review 归档本期项目并对比 AI 与用户版本，预览可复用经验。"
+policy:
+  allow_implicit_invocation: true

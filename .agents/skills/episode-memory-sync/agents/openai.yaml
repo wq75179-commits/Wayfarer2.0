@@ -1,4 +1,0 @@
-interface:
-  display_name: "同步往期影片记忆"
-  short_description: "依据单期已确认事实和发布数据，安全更新往期影片索引与跨期结论"
-  default_prompt: "使用 $episode-memory-sync 整理指定单期的往期影片记录。"

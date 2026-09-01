@@ -9,7 +9,6 @@ memory's state.
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import re
 import sys
@@ -55,12 +54,14 @@ FIELD_PATTERNS = {
     "content": re.compile(r"^\s*(?:[-*]\s*)?内容\s*[:：]\s*(.*?)\s*$"),
 }
 
-# A controlled heading starts with a stable, human-readable identifier.  The
-# D001-style headings in the old decision file are intentionally treated as
-# legacy prose because they use a different format.
-CONTROLLED_ID_RE = re.compile(
-    r"^(?!(?:D|EP)\d+$)[A-Za-z][A-Za-z0-9_-]{1,63}$"
-)
+CONTROLLED_ID_RE = re.compile(r"^(?:OUT|SCR|PKG)-\d{4}$")
+ID_LIKE_RE = re.compile(r"^[A-Za-z]{1,12}-\d+$")
+STAGE_ID_PREFIX = {"大纲": "OUT", "文稿": "SCR", "包装": "PKG"}
+MEMORY_FILES = {
+    "大纲记忆.md": "大纲",
+    "文稿记忆.md": "文稿",
+    "包装记忆.md": "包装",
+}
 HEADING_RE = re.compile(r"^(#{2,6})[ \t]+(.+?)\s*$")
 CONTROLLED_HEADING_RE = re.compile(
     r"^(?P<id>(?!(?:D|EP)\d+$)[A-Za-z][A-Za-z0-9_-]{1,63})\s*[|｜:：]\s*(?P<title>.+?)\s*$"
@@ -79,12 +80,11 @@ class QueryError(Exception):
 class Memory:
     memory_id: str
     title: str
-    stages: Tuple[str, ...]
+    stage: str
     status: str
     content: str
     source: str
     line: int
-    legacy: bool = False
 
 
 @dataclass(frozen=True)
@@ -124,16 +124,13 @@ def canonical_status(value: str) -> str:
     return STATUS_ALIASES[value]
 
 
-def parse_stage_list(value: str, source: str, line: int) -> Tuple[str, ...]:
+def parse_stage_value(value: str, source: str, line: int) -> str:
     values = split_values(value)
     if not values:
         raise QueryError(f"{source}:{line} 的阶段不能为空")
-    stages: List[str] = []
-    for item in values:
-        stage = canonical_stage(item)
-        if stage not in stages:
-            stages.append(stage)
-    return tuple(stages)
+    if len(values) != 1:
+        raise QueryError(f"{source}:{line} 的记忆只能属于一个阶段")
+    return canonical_stage(values[0])
 
 
 def parse_status_value(value: str, source: str, line: int) -> str:
@@ -186,18 +183,6 @@ def block_body(lines: Sequence[str], heading: Heading, headings: Sequence[Headin
     return body
 
 
-def has_child_heading(heading: Heading, headings: Sequence[Heading]) -> bool:
-    """Return true when a later, deeper heading belongs to this section."""
-
-    for candidate in headings:
-        if candidate.line <= heading.line:
-            continue
-        if candidate.level <= heading.level:
-            return False
-        return True
-    return False
-
-
 def parse_fields(body: str) -> Tuple[Optional[str], Optional[str], Optional[str]]:
     stage: Optional[str] = None
     status: Optional[str] = None
@@ -222,35 +207,6 @@ def parse_fields(body: str) -> Tuple[Optional[str], Optional[str], Optional[str]
     return stage, status, None
 
 
-def legacy_status() -> str:
-    # Old free-form text has never passed through the new three-state flow.
-    # It remains a candidate until another skill presents a change to the user.
-    return "候选"
-
-
-def legacy_stages(path: Path, title: str, body: str) -> Tuple[str, ...]:
-    stage_field, _, _ = parse_fields(body)
-    if stage_field:
-        try:
-            return parse_stage_list(stage_field, str(path), 1)
-        except QueryError:
-            pass
-    filename = path.name
-    mapping = {
-        "大纲创作技巧记忆.md": ("大纲",),
-        "文稿撰写记忆.md": ("文稿",),
-        "往期影片信息记录.md": ("大纲", "文稿", "包装"),
-        "重大决策记忆.md": ("大纲", "文稿", "包装"),
-    }
-    return mapping.get(filename, ("大纲", "文稿", "包装"))
-
-
-def legacy_id(source: str, title: str, occurrence: int) -> str:
-    seed = f"{source}\n{title}\n{occurrence}".encode("utf-8")
-    digest = hashlib.sha256(seed).hexdigest()[:12].upper()
-    return f"LEGACY-{digest}"
-
-
 def parse_memory_file(path: Path, repo_root: Path) -> List[Memory]:
     try:
         text = path.read_text(encoding="utf-8-sig")
@@ -259,17 +215,21 @@ def parse_memory_file(path: Path, repo_root: Path) -> List[Memory]:
     except OSError as error:
         raise QueryError(f"无法读取记忆文件：{path}: {error}") from error
 
-    lines = text.splitlines()
-    headings = heading_list(lines)
-    if not headings:
-        return []
     try:
         source = path.relative_to(repo_root).as_posix()
     except ValueError:
         source = path.as_posix()
 
+    expected_stage = MEMORY_FILES.get(path.name)
+    if expected_stage is None:
+        raise QueryError(f"不支持的记忆文件：{source}")
+
+    lines = text.splitlines()
+    headings = heading_list(lines)
+    if not headings:
+        return []
+
     memories: List[Memory] = []
-    legacy_title_counts = {}
     for heading in headings:
         if heading.level < 2:
             continue
@@ -280,40 +240,38 @@ def parse_memory_file(path: Path, repo_root: Path) -> List[Memory]:
                 raise QueryError(
                     f"受控记忆 {source}:{heading.line} 必须同时包含阶段、状态和内容"
                 )
-            stages = parse_stage_list(stage_text, source, heading.line)
+            stage = parse_stage_value(stage_text, source, heading.line)
+            if stage != expected_stage:
+                raise QueryError(
+                    f"受控记忆 {source}:{heading.line} 的阶段必须是 {expected_stage}"
+                )
+            expected_prefix = STAGE_ID_PREFIX[stage]
+            if not heading.explicit_id.startswith(f"{expected_prefix}-"):
+                raise QueryError(
+                    f"受控记忆 {source}:{heading.line} 的编号必须使用 {expected_prefix}-xxxx"
+                )
             status = parse_status_value(status_text, source, heading.line)
             memories.append(
                 Memory(
                     memory_id=heading.explicit_id,
                     title=heading.explicit_title or heading.title,
-                    stages=stages,
+                    stage=stage,
                     status=status,
                     content=content.strip(),
                     source=source,
                     line=heading.line,
-                    legacy=False,
                 )
             )
             continue
 
-        # Empty headings are navigation labels, not memories. Keeping only
-        # leaf sections avoids returning a parent and its children twice.
-        if has_child_heading(heading, headings):
-            continue
+        matched_heading = CONTROLLED_HEADING_RE.match(heading.title)
+        if matched_heading and ID_LIKE_RE.match(matched_heading.group("id")):
+            raise QueryError(f"受控记忆 {source}:{heading.line} 的编号格式无效")
+
         if not body or body.strip("-*_ ") == "":
             continue
-        legacy_title_counts[heading.title] = legacy_title_counts.get(heading.title, 0) + 1
-        memories.append(
-            Memory(
-                memory_id=legacy_id(source, heading.title, legacy_title_counts[heading.title]),
-                title=heading.title,
-                stages=legacy_stages(path, heading.title, body),
-                status=legacy_status(),
-                content=body,
-                source=source,
-                line=heading.line,
-                legacy=True,
-            )
+        raise QueryError(
+            f"记忆文件 {source}:{heading.line} 包含无编号内容；请使用 ### <阶段前缀>-xxxx｜标题"
         )
     return memories
 
@@ -322,9 +280,19 @@ def load_memories(repo_root: Path) -> List[Memory]:
     memory_dir = repo_root / "memories"
     if not memory_dir.is_dir():
         raise QueryError(f"找不到记忆目录：{memory_dir}")
-    paths = sorted(memory_dir.rglob("*.md"), key=lambda item: item.as_posix().lower())
-    if not paths:
-        return []
+    unexpected_paths = sorted(
+        (path for path in memory_dir.rglob("*.md") if path.name not in MEMORY_FILES),
+        key=lambda item: item.as_posix().lower(),
+    )
+    if unexpected_paths:
+        listed = "、".join(path.relative_to(repo_root).as_posix() for path in unexpected_paths)
+        raise QueryError(f"发现不支持的记忆文件：{listed}")
+    paths = []
+    for filename in MEMORY_FILES:
+        path = memory_dir / filename
+        if not path.is_file():
+            raise QueryError(f"缺少阶段记忆文件：{path.relative_to(repo_root).as_posix()}")
+        paths.append(path)
     memories: List[Memory] = []
     seen = {}
     for path in paths:
@@ -340,7 +308,7 @@ def load_memories(repo_root: Path) -> List[Memory]:
 
 
 def stage_matches(memory: Memory, query_stage: str) -> bool:
-    return query_stage in memory.stages
+    return query_stage == memory.stage
 
 
 def status_filter(raw: Optional[str]) -> Tuple[str, ...]:
@@ -362,7 +330,7 @@ def entry_as_dict(memory: Memory) -> dict:
     return {
         "id": memory.memory_id,
         "title": memory.title,
-        "stage": list(memory.stages),
+        "stage": memory.stage,
         "status": memory.status,
         "content": memory.content,
     }
@@ -374,7 +342,7 @@ def select_entries(memories: Sequence[Memory], stage: str, statuses: Sequence[st
         for memory in memories
         if stage_matches(memory, stage) and memory.status in statuses
     ]
-    candidates.sort(key=lambda item: (item.legacy, item.source.lower(), item.line, item.memory_id))
+    candidates.sort(key=lambda item: (item.source.lower(), item.line, item.memory_id))
 
     return [entry_as_dict(memory) for memory in candidates]
 
@@ -405,7 +373,7 @@ def render_markdown(result: dict) -> str:
         lines.extend(
             [
                 f"## {entry['id']}｜{entry['title']}",
-                f"- 阶段：{'、'.join(entry['stage'])}",
+                f"- 阶段：{entry['stage']}",
                 f"- 状态：{entry['status']}",
                 "",
                 entry["content"],
