@@ -1,0 +1,6 @@
+interface:
+  display_name: "记忆生命周期复核"
+  short_description: "按多期 README 快照统计记忆并提出状态申请"
+  default_prompt: "使用 $memory-lifecycle-review 复核指定影片的记忆快照，分开统计采用、验证、反例和观察次数；只有用户明确要求重新观察时才申请暂存转候选。"
+policy:
+  allow_implicit_invocation: true

@@ -4,6 +4,7 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$Stage,
     [string]$Status,
+    [switch]$IncludeEvidence,
     [ValidateSet('json', 'markdown')]
     [string]$Format = 'markdown'
 )
@@ -29,6 +30,9 @@ function Add-OptionalArgument {
 Add-OptionalArgument '--repo-root' $RepoRoot
 Add-OptionalArgument '--status' $Status
 Add-OptionalArgument '--format' $Format
+if ($IncludeEvidence) {
+    $queryArgs += '--include-evidence'
+}
 
 try {
     & python @queryArgs

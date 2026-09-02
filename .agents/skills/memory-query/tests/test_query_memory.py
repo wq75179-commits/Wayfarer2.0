@@ -34,6 +34,22 @@ class MemoryQueryTests(unittest.TestCase):
         path.write_text(text, encoding="utf-8")
         return path
 
+    def write_ledger(self, rows: str = "") -> Path:
+        path = self.root / "memories" / "记忆登记簿.md"
+        path.write_text(
+            "# 记忆登记簿\n\n"
+            "## 记忆索引\n\n"
+            "| 记忆ID | 阶段 | 当前状态 | 采用期数 | 结果支持期数 | 结果反例期数 | 观察期数 | 涉及期数 | 最近复核日期 |\n"
+            "| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | --- |\n"
+            + (rows or "| — | — | — | — | — | — | — | — | — |\n")
+            + "\n## 状态历史\n\n"
+            "| 日期 | 记忆ID | 原状态 | 新状态 | 原因 | 依据 |\n"
+            "| --- | --- | --- | --- | --- | --- |\n"
+            "| — | — | — | — | 暂无已确认记录 | — |\n",
+            encoding="utf-8",
+        )
+        return path
+
     def controlled(
         self,
         memory_id: str,
@@ -226,6 +242,52 @@ class MemoryQueryTests(unittest.TestCase):
         self.assertNotEqual(code, 0)
         self.assertEqual(output, "")
         self.assertIn("无法识别阶段", error)
+
+    def test_default_query_ignores_ledger(self) -> None:
+        self.write("文稿记忆.md", self.controlled("SCR-0001", "规则"))
+        self.write_ledger()
+        code, output, error = self.invoke("--stage", "文稿", "--format", "json")
+        self.assertEqual(code, 0, error)
+        body = json.loads(output)
+        self.assertEqual(body["count"], 1)
+        self.assertNotIn("evidence", body["entries"][0])
+
+    def test_include_evidence_reads_ledger_without_changing_default_fields(self) -> None:
+        self.write("文稿记忆.md", self.controlled("SCR-0001", "规则"))
+        self.write_ledger(
+            "| SCR-0001 | 文稿 | 正式 | 3 | 1 | 0 | 1 | 3 | 2026-09-02 |\n"
+        )
+        code, output, error = self.invoke(
+            "--stage", "文稿", "--format", "json", "--include-evidence"
+        )
+        self.assertEqual(code, 0, error)
+        entry = json.loads(output)["entries"][0]
+        self.assertEqual(entry["id"], "SCR-0001")
+        self.assertEqual(entry["evidence"]["adoption_periods"], 3)
+        self.assertEqual(entry["evidence"]["result_support_periods"], 1)
+        self.assertEqual(entry["evidence"]["result_counterexample_periods"], 0)
+        self.assertEqual(entry["evidence"]["observation_periods"], 1)
+
+    def test_include_evidence_requires_ledger(self) -> None:
+        self.write("文稿记忆.md", self.controlled("SCR-0001", "规则"))
+        code, output, error = self.invoke(
+            "--stage", "文稿", "--format", "json", "--include-evidence"
+        )
+        self.assertNotEqual(code, 0)
+        self.assertEqual(output, "")
+        self.assertIn("详情模式不可用", error)
+
+    def test_include_evidence_requires_matching_ledger_entry(self) -> None:
+        self.write("文稿记忆.md", self.controlled("SCR-0001", "规则"))
+        self.write_ledger(
+            "| SCR-0002 | 文稿 | 候选 | 0 | 0 | 0 | 0 | 0 | 2026-09-02 |\n"
+        )
+        code, output, error = self.invoke(
+            "--stage", "文稿", "--format", "json", "--include-evidence"
+        )
+        self.assertNotEqual(code, 0)
+        self.assertEqual(output, "")
+        self.assertIn("登记簿缺少阶段记忆", error)
 
 
 if __name__ == "__main__":

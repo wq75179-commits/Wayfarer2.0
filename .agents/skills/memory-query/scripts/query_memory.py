@@ -9,12 +9,13 @@ memory's state.
 from __future__ import annotations
 
 import argparse
+import datetime as dt
 import json
 import re
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional, Sequence, Tuple
+from typing import Dict, List, Mapping, Optional, Sequence, Tuple
 
 
 STAGE_ALIASES = {
@@ -62,6 +63,21 @@ MEMORY_FILES = {
     "文稿记忆.md": "文稿",
     "包装记忆.md": "包装",
 }
+LEDGER_FILENAME = "记忆登记簿.md"
+LEDGER_COLUMNS = (
+    "记忆ID",
+    "阶段",
+    "当前状态",
+    "采用期数",
+    "结果支持期数",
+    "结果反例期数",
+    "观察期数",
+    "涉及期数",
+    "最近复核日期",
+)
+LEDGER_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+LEDGER_PLACEHOLDER_VALUES = {"—", "-"}
+LEDGER_SEPARATOR_RE = re.compile(r"^:?-{3,}:?$")
 HEADING_RE = re.compile(r"^(#{2,6})[ \t]+(.+?)\s*$")
 CONTROLLED_HEADING_RE = re.compile(
     r"^(?P<id>(?!(?:D|EP)\d+$)[A-Za-z][A-Za-z0-9_-]{1,63})\s*[|｜:：]\s*(?P<title>.+?)\s*$"
@@ -88,12 +104,52 @@ class Memory:
 
 
 @dataclass(frozen=True)
+class EvidenceSummary:
+    """Cross-episode counters projected by the memory ledger."""
+
+    memory_id: str
+    stage: str
+    current_status: str
+    adoption_periods: int
+    result_support_periods: int
+    result_counterexample_periods: int
+    observation_periods: int
+    involved_periods: int
+    last_reviewed: str
+
+
+@dataclass(frozen=True)
 class Heading:
     level: int
     title: str
     line: int
     explicit_id: Optional[str]
     explicit_title: Optional[str]
+
+
+def split_markdown_table_row(line: str) -> Optional[List[str]]:
+    """Return cells for a pipe table row, or None for a non-table line."""
+
+    stripped = line.strip()
+    if "|" not in stripped:
+        return None
+    if stripped.startswith("|"):
+        stripped = stripped[1:]
+    if stripped.endswith("|"):
+        stripped = stripped[:-1]
+    return [cell.strip() for cell in stripped.split("|")]
+
+
+def is_ledger_separator(cells: Sequence[str]) -> bool:
+    return len(cells) == len(LEDGER_COLUMNS) and all(
+        bool(LEDGER_SEPARATOR_RE.fullmatch(cell.replace(" ", ""))) for cell in cells
+    )
+
+
+def is_ledger_placeholder(cells: Sequence[str]) -> bool:
+    return len(cells) == len(LEDGER_COLUMNS) and all(
+        cell in LEDGER_PLACEHOLDER_VALUES for cell in cells
+    )
 
 
 def clean_value(value: str) -> str:
@@ -280,8 +336,10 @@ def load_memories(repo_root: Path) -> List[Memory]:
     memory_dir = repo_root / "memories"
     if not memory_dir.is_dir():
         raise QueryError(f"找不到记忆目录：{memory_dir}")
+    allowed_paths = {memory_dir / filename for filename in MEMORY_FILES}
+    allowed_paths.add(memory_dir / LEDGER_FILENAME)
     unexpected_paths = sorted(
-        (path for path in memory_dir.rglob("*.md") if path.name not in MEMORY_FILES),
+        (path for path in memory_dir.rglob("*.md") if path not in allowed_paths),
         key=lambda item: item.as_posix().lower(),
     )
     if unexpected_paths:
@@ -305,6 +363,141 @@ def load_memories(repo_root: Path) -> List[Memory]:
             seen[memory.memory_id] = memory
             memories.append(memory)
     return memories
+
+
+def relative_source(path: Path, repo_root: Path) -> str:
+    try:
+        return path.relative_to(repo_root).as_posix()
+    except ValueError:
+        return path.as_posix()
+
+
+def parse_ledger_count(value: str, label: str, source: str, line: int) -> int:
+    if not re.fullmatch(r"\d+", value):
+        raise QueryError(f"登记簿 {source}:{line} 的{label}必须是非负整数")
+    return int(value)
+
+
+def parse_ledger_index(path: Path, repo_root: Path) -> Dict[str, EvidenceSummary]:
+    """Read the optional evidence projection from the ledger index table.
+
+    The ledger is intentionally parsed only when evidence details are requested;
+    normal memory queries remain independent of project history and this file.
+    """
+
+    source = relative_source(path, repo_root)
+    try:
+        text = path.read_text(encoding="utf-8-sig")
+    except UnicodeDecodeError as error:
+        raise QueryError(f"无法按 UTF-8 读取登记簿：{source}: {error}") from error
+    except OSError as error:
+        raise QueryError(f"无法读取登记簿：{source}: {error}") from error
+
+    lines = text.splitlines()
+    section_start: Optional[int] = None
+    for index, line in enumerate(lines):
+        if re.fullmatch(r"\s*##\s+记忆索引\s*", line):
+            section_start = index
+            break
+    if section_start is None:
+        raise QueryError(f"登记簿 {source} 缺少“## 记忆索引”表")
+
+    section_end = len(lines)
+    for index in range(section_start + 1, len(lines)):
+        if re.match(r"^##\s+", lines[index]):
+            section_end = index
+            break
+
+    header_index: Optional[int] = None
+    header_cells: Optional[List[str]] = None
+    for index in range(section_start + 1, section_end):
+        cells = split_markdown_table_row(lines[index])
+        if cells is None:
+            continue
+        header_index = index
+        header_cells = cells
+        break
+    if header_index is None or header_cells is None:
+        raise QueryError(f"登记簿 {source} 的记忆索引缺少表头")
+    if header_cells != list(LEDGER_COLUMNS):
+        expected = " | ".join(LEDGER_COLUMNS)
+        actual = " | ".join(header_cells)
+        raise QueryError(
+            f"登记簿 {source}:{header_index + 1} 的记忆索引表头无效；"
+            f"应为：{expected}；实际为：{actual}"
+        )
+
+    separator_index = header_index + 1
+    while separator_index < section_end and not lines[separator_index].strip():
+        separator_index += 1
+    if separator_index >= section_end:
+        raise QueryError(f"登记簿 {source}:{header_index + 1} 的记忆索引缺少分隔行")
+    separator_cells = split_markdown_table_row(lines[separator_index])
+    if separator_cells is None or not is_ledger_separator(separator_cells):
+        raise QueryError(f"登记簿 {source}:{separator_index + 1} 的记忆索引分隔行无效")
+
+    summaries: Dict[str, EvidenceSummary] = {}
+    for index in range(separator_index + 1, section_end):
+        line = lines[index]
+        if not line.strip():
+            continue
+        cells = split_markdown_table_row(line)
+        if cells is None:
+            raise QueryError(f"登记簿 {source}:{index + 1} 的记忆索引包含非表格内容")
+        if len(cells) != len(LEDGER_COLUMNS):
+            raise QueryError(
+                f"登记簿 {source}:{index + 1} 的记忆索引必须包含 {len(LEDGER_COLUMNS)} 列"
+            )
+        if is_ledger_placeholder(cells):
+            continue
+        memory_id, stage_text, status_text, adoption, support, counterexample, observation, involved, last_reviewed = cells
+        if not CONTROLLED_ID_RE.fullmatch(memory_id):
+            raise QueryError(f"登记簿 {source}:{index + 1} 的记忆ID格式无效：{memory_id}")
+        stage = parse_stage_value(stage_text, source, index + 1)
+        expected_prefix = STAGE_ID_PREFIX[stage]
+        if not memory_id.startswith(f"{expected_prefix}-"):
+            raise QueryError(
+                f"登记簿 {source}:{index + 1} 的记忆ID必须使用 {expected_prefix}-xxxx"
+            )
+        current_status = parse_status_value(status_text, source, index + 1)
+        if last_reviewed not in LEDGER_PLACEHOLDER_VALUES:
+            if not LEDGER_DATE_RE.fullmatch(last_reviewed):
+                raise QueryError(
+                    f"登记簿 {source}:{index + 1} 的最近复核日期必须是 YYYY-MM-DD"
+                )
+            try:
+                dt.date.fromisoformat(last_reviewed)
+            except ValueError as error:
+                raise QueryError(
+                    f"登记簿 {source}:{index + 1} 的最近复核日期不是有效日期：{last_reviewed}"
+                ) from error
+        if memory_id in summaries:
+            raise QueryError(f"登记簿记忆索引中的记忆ID重复：{memory_id}")
+        summaries[memory_id] = EvidenceSummary(
+            memory_id=memory_id,
+            stage=stage,
+            current_status=current_status,
+            adoption_periods=parse_ledger_count(adoption, "采用期数", source, index + 1),
+            result_support_periods=parse_ledger_count(
+                support, "结果支持期数", source, index + 1
+            ),
+            result_counterexample_periods=parse_ledger_count(
+                counterexample, "结果反例期数", source, index + 1
+            ),
+            observation_periods=parse_ledger_count(
+                observation, "观察期数", source, index + 1
+            ),
+            involved_periods=parse_ledger_count(involved, "涉及期数", source, index + 1),
+            last_reviewed=last_reviewed,
+        )
+    return summaries
+
+
+def load_evidence(repo_root: Path) -> Dict[str, EvidenceSummary]:
+    path = repo_root / "memories" / LEDGER_FILENAME
+    if not path.is_file():
+        raise QueryError(f"详情模式不可用：找不到登记簿 {path.relative_to(repo_root).as_posix()}")
+    return parse_ledger_index(path, repo_root)
 
 
 def stage_matches(memory: Memory, query_stage: str) -> bool:
@@ -347,8 +540,40 @@ def select_entries(memories: Sequence[Memory], stage: str, statuses: Sequence[st
     return [entry_as_dict(memory) for memory in candidates]
 
 
-def build_result(stage: str, statuses: Sequence[str], memories: Sequence[Memory]) -> dict:
+def evidence_as_dict(summary: EvidenceSummary) -> dict:
+    return {
+        "memory_id": summary.memory_id,
+        "stage": summary.stage,
+        "current_status": summary.current_status,
+        "adoption_periods": summary.adoption_periods,
+        "result_support_periods": summary.result_support_periods,
+        "result_counterexample_periods": summary.result_counterexample_periods,
+        "observation_periods": summary.observation_periods,
+        "involved_periods": summary.involved_periods,
+        "last_reviewed": summary.last_reviewed,
+    }
+
+
+def build_result(
+    stage: str,
+    statuses: Sequence[str],
+    memories: Sequence[Memory],
+    evidence: Optional[Mapping[str, EvidenceSummary]] = None,
+) -> dict:
     entries = select_entries(memories, stage, statuses)
+    if evidence is not None:
+        missing = [entry["id"] for entry in entries if entry["id"] not in evidence]
+        if missing:
+            raise QueryError(
+                "详情模式中登记簿缺少阶段记忆：" + "、".join(missing)
+            )
+        for entry in entries:
+            summary = evidence[entry["id"]]
+            if summary.stage != entry["stage"] or summary.current_status != entry["status"]:
+                raise QueryError(
+                    f"详情模式中登记簿与阶段记忆不一致：{entry['id']}"
+                )
+            entry["evidence"] = evidence_as_dict(summary)
     return {
         "stage": stage,
         "status": list(statuses),
@@ -375,6 +600,22 @@ def render_markdown(result: dict) -> str:
                 f"## {entry['id']}｜{entry['title']}",
                 f"- 阶段：{entry['stage']}",
                 f"- 状态：{entry['status']}",
+            ]
+        )
+        if "evidence" in entry:
+            evidence = entry["evidence"]
+            lines.extend(
+                [
+                    f"- 采用期数：{evidence['adoption_periods']}",
+                    f"- 结果支持期数：{evidence['result_support_periods']}",
+                    f"- 结果反例期数：{evidence['result_counterexample_periods']}",
+                    f"- 观察期数：{evidence['observation_periods']}",
+                    f"- 涉及期数：{evidence['involved_periods']}",
+                    f"- 最近复核日期：{evidence['last_reviewed']}",
+                ]
+            )
+        lines.extend(
+            [
                 "",
                 entry["content"],
                 "",
@@ -389,6 +630,13 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
     parser.add_argument("--stage", required=True, help="创作阶段")
     parser.add_argument("--status", help="候选、正式或暂存；省略时为候选和正式")
     parser.add_argument("--format", choices=("json", "markdown"), default="markdown")
+    parser.add_argument(
+        "--include-evidence",
+        "--details",
+        dest="include_evidence",
+        action="store_true",
+        help="显式读取记忆登记簿并在每条记忆中附加跨期统计",
+    )
     return parser.parse_args(argv)
 
 
@@ -399,7 +647,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         statuses = status_filter(args.status)
         repo_root = args.repo_root.resolve()
         memories = load_memories(repo_root)
-        result = build_result(stage, statuses, memories)
+        evidence = load_evidence(repo_root) if args.include_evidence else None
+        result = build_result(stage, statuses, memories, evidence)
         if args.format == "json":
             print(json.dumps(result, ensure_ascii=False, indent=2))
         else:

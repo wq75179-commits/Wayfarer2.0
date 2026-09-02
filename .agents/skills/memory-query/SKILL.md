@@ -46,18 +46,22 @@ pwsh.exe -NoProfile -File .agents/skills/memory-query/scripts/query_memory.ps1 -
 pwsh.exe -NoProfile -File .agents/skills/memory-query/scripts/query_memory.ps1 -Stage 文稿 -Status 全部
 pwsh.exe -NoProfile -File .agents/skills/memory-query/scripts/query_memory.ps1 -Stage 文稿 -Status 候选
 pwsh.exe -NoProfile -File .agents/skills/memory-query/scripts/query_memory.ps1 -Stage 文稿 -Status 暂存
+pwsh.exe -NoProfile -File .agents/skills/memory-query/scripts/query_memory.ps1 -Stage 文稿 -IncludeEvidence -Format json
 ```
 
 结果默认使用紧凑中文清单。需要结构化结果时添加 `-Format json`。每条结果只包含编号、标题、阶段、状态和内容。
+需要查看跨期采用、效果支持、反例、观察和最近复核日期时，才显式添加 `-IncludeEvidence`；详情模式从 `memories/记忆登记簿.md` 读取统计，并在每条结果中增加 `evidence` 字段。登记簿缺失、表头错误或缺少对应记忆时，详情查询停止并报告原因。
 
 ## 使用边界
 
-- 只读三份阶段记忆文件，不读取项目 README 或本期创作文件。
+- 默认只读三份阶段记忆文件，不读取项目 README 或本期创作文件；`memories/记忆登记簿.md` 是详情模式专用文件。
+- 只有显式 `-IncludeEvidence`/`--include-evidence` 才读取登记簿统计；默认输出格式和字段保持不变。
 - 不把暂存记忆混入默认结果。
 - 不根据调用次数、播放数据或模型判断改变状态。
 - 不提出候选、不提醒升级、不判断失效、不执行删除。
 - 不修改记忆文件、项目 README 或任何其他文件。
 - 查询为空时只返回空清单；调用方不得猜测规则或退回整份原始记忆。
+- 详情模式只展示登记簿已有统计，不负责从 README 重算、判断状态或提出升级/降级建议。
 
 `creative-memory-review` 是经用户手动触发的整理写入方。它为去重、预览和回读而读取原始记忆文件，不属于创作阶段的读取路径。
 
