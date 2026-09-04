@@ -1,4 +1,0 @@
-interface:
-  display_name: "归档单期项目"
-  short_description: "归档当前单期项目，并按确认流程启动四份长期记忆整理"
-  default_prompt: "使用 $archive-episode 归档当前单期项目并开始整理长期记忆。"

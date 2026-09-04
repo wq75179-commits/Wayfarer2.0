@@ -28,10 +28,9 @@
     - [C6. 同步与文档索引](#c6-同步与文档索引)
     - [C7. 归档与记忆整理](#c7-归档与记忆整理)
   - [附录 D：Skills 说明](#附录-dskills-说明)
-    - [`archive-episode`](#archive-episode)
-    - [`episode-memory-sync`](#episode-memory-sync)
-    - [`creative-memory-sync`](#creative-memory-sync)
-    - [`channel-decision-sync`](#channel-decision-sync)
+    - [`creative-memory-review`](#creative-memory-review)
+    - [`memory-lifecycle-review`](#memory-lifecycle-review)
+    - [`memory-query`](#memory-query)
 
 ---
 
@@ -398,25 +397,15 @@ graph LR
 - [Wayfarer2.0](./)：频道创作工作区
   - [AGENTS.md](./AGENTS.md)：频道创作流程、内容规范与协作约定
   - [.agents/skills/](./.agents/skills/)：项目级 Skills
-    - [archive-episode/](./.agents/skills/archive-episode/)：归档单期项目并启动记忆整理
-    - [episode-memory-sync/](./.agents/skills/episode-memory-sync/)：同步往期影片事实与索引
-    - [creative-memory-sync/](./.agents/skills/creative-memory-sync/)：整理大纲与文稿经验
-    - [channel-decision-sync/](./.agents/skills/channel-decision-sync/)：整理频道重大决策并完成最终审计
+    - [creative-memory-review/](./.agents/skills/creative-memory-review/)：归档单期项目、对比 AI 与用户版本并整理阶段记忆
+    - [memory-lifecycle-review/](./.agents/skills/memory-lifecycle-review/)：按指定多期影片汇总记忆证据并申请状态变更
+    - [memory-query/](./.agents/skills/memory-query/)：只读查询大纲、文稿或包装阶段记忆
   - [memories/](./memories/)：跨期创作记忆
-    - [大纲创作技巧记忆.md](./memories/大纲创作技巧记忆.md)：跨期大纲创作技巧记录
-    - [往期影片信息记录.md](./memories/往期影片信息记录.md)：跨期影片索引、圈层配额、经验与待验证动作
-    - [文稿撰写记忆.md](./memories/文稿撰写记忆.md)：跨期文稿撰写技巧记录
-    - [重大决策记忆.md](./memories/重大决策记忆.md)：跨期重大决策记录
+    - [大纲记忆.md](./memories/大纲记忆.md)：跨期大纲经验
+    - [文稿记忆.md](./memories/文稿记忆.md)：跨期文稿与表达经验
+    - [包装记忆.md](./memories/包装记忆.md)：跨期封面、标题、简介和关键词经验
+    - [记忆登记簿.md](./memories/记忆登记簿.md)：跨期记忆的采用、验证、冲突统计和状态历史
   - [project/](./project/)：单期影片项目目录（按约定不在本索引展开）
-  - [WritingStyle/](./WritingStyle/)：频道写作风格与历史样稿
-    - [raw/](./WritingStyle/raw/)：历史影片的标题、封面文案、表现数据与逐字稿
-      - [2分钟告别拖延.md](./WritingStyle/raw/2分钟告别拖延.md)：《2分钟告别拖延》逐字稿与表现数据
-      - [成瘾式学习法.md](./WritingStyle/raw/成瘾式学习法.md)：《成瘾式学习法》逐字稿
-      - [大脑喜欢这样学.md](./WritingStyle/raw/大脑喜欢这样学.md)：《大脑喜欢这样学》逐字稿
-      - [简单3步吃透1本书.md](./WritingStyle/raw/简单3步吃透1本书.md)：《简单3步吃透1本书》逐字稿
-      - [拖延没动力.md](./WritingStyle/raw/拖延没动力.md)：《拖延没动力》逐字稿
-      - [西蒙学习法.md](./WritingStyle/raw/西蒙学习法.md)：《西蒙学习法》逐字稿
-    - [WritingStyle.md](./WritingStyle/WritingStyle.md)：频道口播文稿的声音画像、结构与写作校验规范
 
 ---
 
@@ -427,7 +416,8 @@ graph LR
 - `project/example/README.md` 是**单期影片记录模板**，只用于初始化新影片项目；不得把模板中的占位值、示例路径或默认状态当作真实影片事实。
 - 真实单期影片的唯一事实源是 `project/<episode>/README.md`。标题、发布状态、数据和分析发生冲突时，以该文件为准。
 - 跨期记忆只能从已确认的真实单期 README 提炼；不得用 `memories/` 中的内容反向覆盖、补全或推断单期 README。
-- README 的 Changelog 是已确认决策与重要变更的持久记录；聊天内容必须先进入 Changelog，才能作为大纲、文稿或重大决策记忆的依据。
+- README 的 Changelog 是已确认决策与重要变更的持久记录；其中“本期相关记忆（快照）”只记录本期涉及的记忆及其当时状态和结果。聊天内容必须先形成已确认事实，才能作为阶段记忆候选的依据。
+- `memories/记忆登记簿.md` 是跨期统计和状态历史的登记簿，不替代任何单期 README；登记簿中的统计必须能够由各期快照重建。
 
 ### C2. 读取规则
 
@@ -443,8 +433,8 @@ graph LR
 - 创建时生成 `episode_id`，格式为 `WF-YYYYMMDD-NN`；创建后不得因标题、目录名或发布日期变化而修改。
 - `创建日期`使用项目初始化日期，格式为 `YYYY-MM-DD`；`选题`必须同时表达主题与切入角度，避免同题不同写法混淆。
 - `受众圈层`只能填写“第一圈”“第二圈”或“第三圈”；`内容类型`只能填写“原创”或“再创作”。
-- 保留所有模板章节、确认节点、数据字段和文档索引。未知信息保持为空或使用模板规定的默认值，不删除字段来隐藏缺失信息。
-- 保留 Changelog 的固定表头；第一条真实记录写入时删除“暂无已确认记录”占位行。
+- 保留所有模板章节、确认节点、数据字段、复盘对照文件和文档索引。未知信息保持为空或使用模板规定的默认值，不删除字段来隐藏缺失信息。
+- 保留普通 Changelog 和“本期相关记忆（快照）”的固定表头；各表第一条真实记录写入时分别删除对应的占位行。
 
 ### C4. 创作阶段与确认修改
 
@@ -452,7 +442,8 @@ graph LR
 - 仅在用户作出明确确认后，才能修改“当前状态”与“创作确认”表对应行；不得把草稿完成、口头讨论或推测视为确认。
 - 每次确认应同步填写确认日期、决策摘要和必要备注；影片取消或暂停时，未进行的节点必须保留，不得伪造为已确认。
 - “归档”行仅能在用户明确确认归档后标记为“已确认”。
-- Changelog 只记录已确认且会影响本期结果或以后创作的决策、重要变更、明确否决和记忆写入；不得记录细小编辑、工具过程或 AI 推测。
+- 普通 Changelog 只记录已确认且会影响本期结果或以后创作的决策、重要变更和明确否决；记忆相关内容写入“本期相关记忆（快照）”，不得在普通表格中重复记录。
+- 快照表每条记忆只保留一行，字段固定为“日期、记忆ID、阶段、状态、本期结果、依据”。“本期结果”可组合填写“采用、已验证、失败、待验证、无法判断、明确冲突、未采用”；“采用”不等于“已验证”。
 
 ### C5. 发布、数据与分析修改
 
@@ -464,57 +455,48 @@ graph LR
 
 ### C6. 同步与文档索引
 
-- 将真实单期 README 同步到跨期记忆前，每个负责写入的 Skill 都必须先用直白语言说明准备记录的内容和依据，并取得一次明确批准；批准后立即写入、回读检查，再进入下一步。
+- 创作阶段需要参考长期经验时，必须通过 `memory-query` 查询当前阶段，不能直接通读 `memories/` 原始文件。默认查询返回候选和正式记忆；需要跨期证据时才显式请求登记簿详情。查询为空时不得猜测频道规则。
+- 单期归档、总结或复盘并产生新候选时，使用 `creative-memory-review`；它负责比较本期 AI/用户版本，并在用户批准后写入对应阶段记忆和本期快照。
+- 用户指定若干期影片进行记忆再整理、统计或状态转换申请时，使用 `memory-lifecycle-review`；它只读取指定真实项目，汇总快照并提出候选→正式或正式→暂存申请。暂存→候选只有在用户明确要求重新观察并显式指定记忆 ID 时才申请，不自动改变状态。
+- 每次写入或改变记忆前都要用直白语言说明准备记录什么、依据是什么和不会记录什么，并取得明确批准；批准后写入、回读检查。状态历史写入登记簿，不复制到历史 README。
 - 发生文件结构变化时，同步更新该单期 README 的“文档索引”，逐项列出真实文件路径及其用途。
+- 新项目在“复盘对照文件”表中登记 AI 版本与用户版本；没有明确版本角色时保持为空，不得猜测。
 - `project/example/README.md` 始终只作为模板保留，不记录真实影片数据，也不参与跨期记忆同步。
 
 ### C7. 归档与记忆整理
 
-- 用户明确表达“本期正式归档，并开始整理记忆”的同等含义时，触发 `archive-episode`；不要求固定标点或逐字一致。
-- 触发语授权完成本期 README 归档，但不直接授权写入 `memories/`。四份记忆必须全部审计，并由各自 Skill 单独询问。
-- 固定顺序为：`archive-episode` → `episode-memory-sync` → `creative-memory-sync` → `channel-decision-sync` → 最终审计。
-- Skills 之间使用内部交接指令；面向用户只说明当前准备记录什么、依据是什么以及是否继续，不显示技术术语。当前只有一个待确认问题时，`Y`、`是`或`继续`可视为明确批准。
-- 没有新增内容时不修改对应文件，但仍继续审计下一份记忆；写入或回读检查失败时停止，从失败步骤恢复，不撤销此前已批准且检查通过的结果。
-- 单次修改只作为待观察；同一模式由三个不同项目支持后，才可询问是否升级为长期规则。重大决策只能来自用户明确决定，不得从单期表现自动推断。
-- 例行归档只修改本期直接影响的条目和必要统计；与本期无关的历史问题只报告，不顺手重写。
-- 四份记忆全部审计后，必须再次询问用户是否确认整体完成且允许保存版本记录；得到明确批准前不得提交 Git。
+- 用户明确表达“归档”“总结经验”“分析”或“复盘”单期内容时，触发 `creative-memory-review`；普通收尾讨论不触发。
+- 用户明确指定两期或以上影片进行记忆验证、再整理、转正式或转暂存时，触发 `memory-lifecycle-review`；未指定范围时不得擅自全量扫描。
+- 用户要求归档时，Skill 先检查并在用户批准后固化本期 README 的归档事实；用户只要求总结或分析时，不改变归档状态。
+- Skill 只比较 README、Changelog 和“复盘对照文件”中角色明确的一对 AI/用户文件。文件角色不明、用户版本缺失或只有单一版本时，该阶段标记为无法比较，不得猜测。
+- 用户版本是本期创作偏好的基准；AI 只能分析差异与提出候选经验，不得推断用户未说明的修改动机。
+- `creative-memory-review` 一次修改只能产生候选；AI 可以在本期快照中记录采用或待验证，但不能据此自动升级。`memory-lifecycle-review` 可依据不同 episode 的快照汇总采用、已验证、失败和观察次数并提出状态申请；暂存→候选还需要用户明确要求重新观察；候选转正式、正式转暂存、暂存转候选和所有删除决定都必须由用户明确批准。
+- 每条记忆只能属于大纲、文稿或包装中的一个阶段，且必须使用对应的 `OUT-`、`SCR-` 或 `PKG-` 编号。跨阶段经验必须拆为独立条目分别批准。
+- 只写用户批准的条目。写入前重读来源，写入后回读阶段记忆、登记簿和本期 README；任一失败时恢复本步骤的变更并停止。无新增、用户拒绝或证据不足时不写普通 Changelog，也不写快照。
+- 历史 README 中没有记忆 ID 的自然语言记录只作为历史事实保留，标记为“历史未结构化”，不得自动计入采用或验证次数；只有用户明确映射后才能迁移。
 
 ---
 
 ## 附录 D：Skills 说明
 
-四个 Skills 共同组成单期归档与记忆整理流程。每个 Skill 只拥有明确的主要写入目标，并通过本期 README Changelog 保留来源。
+`creative-memory-review` 是单期归档、版本比较和新候选记忆的写入入口；`memory-lifecycle-review` 是用户指定多期后的证据汇总与状态申请入口；`memory-query` 是后续创作读取阶段记忆的唯一入口。
 
-### `archive-episode`
+### `creative-memory-review`
 
-- **用途**：归档当前唯一的真实单期项目，并启动逐步记忆整理。
-- **触发**：用户明确表达本期正式归档且开始整理记忆，或显式调用该 Skill。
-- **写入边界**：只修改本期 README；触发语本身已经授权归档，不修改 `memories/`。
-- **完成标准**：归档事实完整、Changelog 可追溯、只读检查通过，并已询问是否进入往期影片记录整理。
-- **详细规则**：[`.agents/skills/archive-episode/SKILL.md`](./.agents/skills/archive-episode/SKILL.md)。
+- **用途**：在用户手动归档、总结经验、分析或复盘时，归档本期 README、比较 AI 与用户的大纲/文稿/包装，并预览阶段记忆变更。
+- **写入边界**：仅在用户批准后写本期 README 与三份阶段记忆；不写项目索引、频道决策或其他无阶段记忆。
+- **完成标准**：每个阶段都有可比较、无法比较或无新经验的明确结果；获批写入均可回读，且 Changelog 只记录实际成功写入。
+- **详细规则**：[`.agents/skills/creative-memory-review/SKILL.md`](./.agents/skills/creative-memory-review/SKILL.md)。
 
-### `episode-memory-sync`
+### `memory-lifecycle-review`
 
-- **用途**：将单期影片 README 中已确认、可复核的事实投影为跨期决策索引，支持归档影片、补充已发布数据、修正跨期结论和审计长期记忆一致性。
-- **事实源与产物**：以 `project/<episode>/README.md` 为唯一事实源，将摘要写入 `memories/往期影片信息记录.md`。`project/example/README.md` 仅是模板，不能作为同步来源。
-- **何时使用**：在归档串联流程中接收上一步交接，或用户明确要求预览、同步、刷新或审计往期影片记录时运行。
-- **执行方式**：先只读校验并说明准备记录的内容；取得本步批准后写入、回读校验，并向本期 Changelog 追加一条成功记录。
-- **边界**：主要只写往期影片记忆；除成功写入日志外不反向修改单期 README，不修改逐字稿、素材或原始数据。
-- **完成标准**：每个 `episode_id` 在长期记忆中仅保留一条、回链真实 README，且权威字段、指标标签和最近十期圈层配额均通过校验。
-- **详细规则**：[`.agents/skills/episode-memory-sync/SKILL.md`](./.agents/skills/episode-memory-sync/SKILL.md)。
+- **用途**：按用户指定的一个或多个真实 episode 汇总本期记忆快照，统计采用、已验证、失败和观察（待验证/无法判断）证据，并预览状态变更申请。
+- **写入边界**：报告阶段只读；用户明确批准申请后，由本 Skill 更新阶段记忆、按全量快照重建登记簿索引并追加状态历史，不修改历史快照，不处理 `project/example`。
+- **历史边界**：没有记忆 ID 的旧 Changelog 或自由文本只能列为历史未结构化，不得自动计数或推断映射。
+- **详细规则**：[`.agents/skills/memory-lifecycle-review/SKILL.md`](./.agents/skills/memory-lifecycle-review/SKILL.md)。
 
-### `creative-memory-sync`
+### `memory-query`
 
-- **用途**：从本期 Changelog 与最终文件提炼大纲技巧、文稿经验和表达偏好。
-- **写入目标**：`memories/大纲创作技巧记忆.md` 与 `memories/文稿撰写记忆.md`。
-- **证据门槛**：明确长期要求可直接成为候选；单期修改只待观察；三个不同项目重复后才可提议升级。
-- **边界**：不得仅凭聊天、无原因的 Git 变化或播放数据推断永久写作规则。
-- **详细规则**：[`.agents/skills/creative-memory-sync/SKILL.md`](./.agents/skills/creative-memory-sync/SKILL.md)。
-
-### `channel-decision-sync`
-
-- **用途**：同步用户明确作出的频道长期决定，并完成四份记忆最终审计。
-- **写入目标**：`memories/重大决策记忆.md`；没有新决定时保持文件不变。
-- **证据门槛**：决定必须由用户明确作出并已进入本期 Changelog，可以先记录、后验证。
-- **边界**：不得从单期表现、一次修改或 agent 建议自动生成战略决策；最终审计不顺手重写无关历史。
-- **详细规则**：[`.agents/skills/channel-decision-sync/SKILL.md`](./.agents/skills/channel-decision-sync/SKILL.md)。
+- **用途**：为大纲、文稿和包装阶段只读返回当前可参考的候选与正式记忆。
+- **边界**：不写入、不升级、不删除；默认排除暂存记忆。仅在显式详情模式下读取登记簿证据，不根据详情自动改变状态。
+- **详细规则**：[`.agents/skills/memory-query/SKILL.md`](./.agents/skills/memory-query/SKILL.md)。
