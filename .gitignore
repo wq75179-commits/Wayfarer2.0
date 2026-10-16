@@ -11,3 +11,10 @@ YOLO/
 ehthumbs.db
 Thumbs.db
 desktop.ini
+
+# Python cache
+__pycache__/
+
+# 受版权保护的书籍原文（仅本地保留）
+*.epub
+project/背得很少/work/原书_*.txt
